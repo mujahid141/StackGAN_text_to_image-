@@ -27,8 +27,6 @@ class TextDataset(data.Dataset):
 
         self.filenames = self.load_filenames(split_dir)
         self.embeddings = self.load_embedding(split_dir, embedding_type)
-        #self.class_id = self.load_class_id(split_dir, len(self.filenames))
-        # self.captions = self.load_all_captions()
 
     def get_img(self, img_path, bbox):
         img = Image.open(img_path).convert('RGB')
@@ -54,7 +52,6 @@ class TextDataset(data.Dataset):
         df_bounding_boxes = pd.read_csv(bbox_path,
                                         delim_whitespace=True,
                                         header=None).astype(int)
-        #
         filepath = os.path.join(data_dir, 'CUB_200_2011/images.txt')
         df_filenames = \
             pd.read_csv(filepath, delim_whitespace=True, header=None)
@@ -64,7 +61,6 @@ class TextDataset(data.Dataset):
         filename_bbox = {img_file[:-4]: [] for img_file in filenames}
         numImgs = len(filenames)
         for i in range(0, numImgs):
-            # bbox = [x-left, y-top, width, height]
             bbox = df_bounding_boxes.iloc[i][1:].tolist()
 
             key = filenames[i][:-4]
@@ -90,74 +86,33 @@ class TextDataset(data.Dataset):
 
     def load_embedding(self, data_dir, embedding_type):
         if embedding_type == 'cnn-rnn':
-            print('embedding....')
             embedding_filename = os.path.join(data_dir, 'char-CNN-RNN-embeddings.pickle')
-            #print(embedding_filename)
-            #embedding_filename = '/char-CNN-RNN-embeddings.pickle'
         elif embedding_type == 'cnn-gru':
             embedding_filename = '/char-CNN-GRU-embeddings.pickle'
         elif embedding_type == 'skip-thought':
             embedding_filename = '/skip-thought-embeddings.pickle'
 
         with open(embedding_filename, 'rb') as f:
-            #embeddings = pickle.load(f)
             embeddings = pickle._Unpickler(f)
             embeddings.encoding = 'latin1'
             embeddings = embeddings.load()
-            #print(embeddings)
             embeddings = np.array(embeddings)
-            # embedding_shape = [embeddings.shape[-1]]
-        '''with open('mnist.pkl', 'rb') as f:
-            u = pickle._Unpickler(f)
-            u.encoding = 'latin1'
-            p = u.load()'''
-            #print('embeddings: ', embeddings.shape)
         return embeddings
-
-    '''def load_class_id(self, data_dir, total_num):
-        if os.path.isfile(data_dir + '/class_info.pickle'):
-            with open(data_dir + '/class_info.pickle', 'rb') as f:
-                class_id = pickle.load(f)
-        else:
-            class_id = np.arange(total_num)
-        return class_id'''
     
 
     def load_filenames(self, data_dir):
-        #../input/coco-data/coco/coco/train/filenames.pickle
         filepath = os.path.join(data_dir, 'filenames.pickle')
+    
         with open(filepath, 'rb') as f:
             filenames = pickle.load(f)
-        print('Load filenames from: %s (%d)' % (filepath, len(filenames)))
-        print(len(filenames))
-        #print(args.IMG_DIR)
         l=os.listdir('/content/coco_train_val2017/train2014/train2014')
         im_file=[x.split('.')[0] for x in l]
-        #im_file = ['.'.join(x.split('.')[:-1]) for x in os.listdir("args.IMG_DIR") if os.path.isfile(os.path.join('args.IMG_DIR', x))]
-        print(len(im_file))
-        #str = 'COCO_train2014_'
-        #im_file = [str + x for x in im_file]
-        print(im_file[0]) 
-        print(filenames[0]) #COCO_train2014_
         te = list(set(im_file) & set(filenames)) 
-        print('te: ', len(te))
-        #list_ = ['.'.join(x.split('.')[:-1]) for x in os.listdir("path/to/Data") if os.path.isfile(os.path.join('path/to/Data', x))]
-        #print(ssd)
         return filenames
 
-    
-    '''def load_filenames(self, data_dir):
-        #../input/coco-data/coco/coco/train/filenames.pickle
-        filepath = os.path.join(data_dir, 'filenames.pickle')
-        with open(filepath, 'rb') as f:
-            filenames = pickle.load(f)
-        print('Load filenames from: %s (%d)' % (filepath, len(filenames)))
-        return filenames'''
 
     def __getitem__(self, index):
         key = self.filenames[index]
-        # cls_id = self.class_id[index]
-        #
         if self.bbox is not None:
             bbox = self.bbox[key]
             data_dir = '%s/CUB_200_2011' % self.data_dir
@@ -165,13 +120,8 @@ class TextDataset(data.Dataset):
             bbox = None
             data_dir = self.data_dir
 
-        # captions = self.captions[key]
         embeddings = self.embeddings[index, :, :]
-        #print(args.IMG_DIR)
-        #print(key)
-        #y = key[-12:]
         img_name = '%s/%s.jpg' % ('/content/coco_train_val2017/train2014/train2014', key)
-        #img_name = '%s/images/%s.jpg' % (data_dir, key)
         img = self.get_img(img_name, bbox)
 
         embedding_ix = random.randint(0, embeddings.shape[0]-1)

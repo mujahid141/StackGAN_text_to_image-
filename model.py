@@ -38,12 +38,10 @@ class ResBlock(nn.Module):
         return out
 		
 class CA_NET(nn.Module):
-    # some code is modified from vae examples
-    # (https://github.com/pytorch/examples/blob/master/vae/main.py)
     def __init__(self):
         super(CA_NET, self).__init__()
-        self.t_dim = args.DIMENSION
-        self.c_dim = args.CONDITION_DIM
+        self.t_dim = 1024
+        self.c_dim = 128
         self.fc = nn.Linear(self.t_dim, self.c_dim * 2, bias=True)
         self.relu = nn.ReLU()
 
@@ -55,7 +53,7 @@ class CA_NET(nn.Module):
 
     def reparametrize(self, mu, logvar):
         std = logvar.mul(0.5).exp_()
-        if args.CUDA:
+        if torch.cuda.is_available():
             eps = torch.cuda.FloatTensor(std.size()).normal_()
         else:
             eps = torch.FloatTensor(std.size()).normal_()
@@ -86,11 +84,10 @@ class D_GET_LOGITS(nn.Module):
                 nn.Sigmoid())
 
     def forward(self, h_code, c_code=None):
-        # conditioning output
         if self.bcondition and c_code is not None:
             c_code = c_code.view(-1, self.ef_dim, 1, 1)
             c_code = c_code.repeat(1, 1, 4, 4)
-            # state size (ngf+egf) x 4 x 4
+            
             h_c_code = torch.cat((h_code, c_code), 1)
         else:
             h_c_code = h_code
@@ -105,32 +102,32 @@ class D_GET_LOGITS(nn.Module):
 class STAGE1_G(nn.Module):
     def __init__(self):
         super(STAGE1_G, self).__init__()
-        self.gf_dim = args.GF_DIM * 8
-        self.ef_dim = args.CONDITION_DIM
-        self.z_dim = args.Z_DIM
+        self.gf_dim = 192 * 8
+        self.ef_dim = 128
+        self.z_dim = 100
+
         self.define_module()
 
     def define_module(self):
         ninput = self.z_dim + self.ef_dim
         ngf = self.gf_dim
-        # TEXT.DIMENSION -> GAN.CONDITION_DIM
+
         self.ca_net = CA_NET()
 
-        # -> ngf x 4 x 4
         self.fc = nn.Sequential(
             nn.Linear(ninput, ngf * 4 * 4, bias=False),
             nn.BatchNorm1d(ngf * 4 * 4),
             nn.ReLU(True))
 
-        # ngf x 4 x 4 -> ngf/2 x 8 x 8
+
         self.upsample1 = upBlock(ngf, ngf // 2)
-        # -> ngf/4 x 16 x 16
+
         self.upsample2 = upBlock(ngf // 2, ngf // 4)
-        # -> ngf/8 x 32 x 32
+
         self.upsample3 = upBlock(ngf // 4, ngf // 8)
-        # -> ngf/16 x 64 x 64
+
         self.upsample4 = upBlock(ngf // 8, ngf // 16)
-        # -> 3 x 64 x 64
+
         self.img = nn.Sequential(
             conv3x3(ngf // 16, 3),
             nn.Tanh())
@@ -145,7 +142,7 @@ class STAGE1_G(nn.Module):
         h_code = self.upsample2(h_code)
         h_code = self.upsample3(h_code)
         h_code = self.upsample4(h_code)
-        # state size 3 x 64 x 64
+
         fake_img = self.img(h_code)
         return None, fake_img, mu, logvar
 		
@@ -157,8 +154,8 @@ class STAGE1_G(nn.Module):
 class STAGE1_D(nn.Module):
     def __init__(self):
         super(STAGE1_D, self).__init__()
-        self.df_dim = args.DF_DIM
-        self.ef_dim = args.CONDITION_DIM
+        self.df_dim = 96
+        self.ef_dim = 128
         self.define_module()
 
     def define_module(self):
@@ -198,10 +195,11 @@ class STAGE1_D(nn.Module):
 class STAGE2_G(nn.Module):
     def __init__(self, STAGE1_G):
         super(STAGE2_G, self).__init__()
-        self.gf_dim = args.GF_DIM
-        self.ef_dim = args.CONDITION_DIM
-        self.z_dim = args.Z_DIM
+        self.gf_dim = 192
+        self.ef_dim = 128
+        self.z_dim = 100
         self.STAGE1_G = STAGE1_G
+
         # fix parameters of stageI GAN
         for param in self.STAGE1_G.parameters():
             param.requires_grad = False
@@ -209,7 +207,7 @@ class STAGE2_G(nn.Module):
 
     def _make_layer(self, block, channel_num):
         layers = []
-        for i in range(args.R_NUM):
+        for i in range(2):
             layers.append(block(channel_num))
         return nn.Sequential(*layers)
 
@@ -275,8 +273,8 @@ class STAGE2_G(nn.Module):
 class STAGE2_D(nn.Module):
     def __init__(self):
         super(STAGE2_D, self).__init__()
-        self.df_dim = args.DF_DIM
-        self.ef_dim = args.CONDITION_DIM
+        self.df_dim = 96
+        self.ef_dim = 128
         self.define_module()
 
     def define_module(self):

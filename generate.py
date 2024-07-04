@@ -11,11 +11,7 @@ Original file is located at
 
 !gdown --id 1-4liMOrMxY2HTy5FPmDr9MjWPjM-P6iy
 
-!gdown --id 1-GP9iMgD8sXcY1X2XazI5KCGjBVu3BmW
-
-!wget "https://storage.googleapis.com/kaggle-data-sets/258650/542437/compressed/coco_netG_epoch_90.pth.zip?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=gcp-kaggle-com%40kaggle-161607.iam.gserviceaccount.com%2F20240630%2Fauto%2Fstorage%2Fgoog4_request&X-Goog-Date=20240630T113827Z&X-Goog-Expires=259200&X-Goog-SignedHeaders=host&X-Goog-Signature=a421484af657ebd142761ef1cd48f238eadabe5a06b784560fe80be9f3dbbdaf183343501eac4e28256c5252f47a175a47a1c3bbf805fa3b1740b8379c2dbc3e81fb533d142574f8a3e24442159828a94e63afaec6666f37b53fd9d8df345a4b8802e7fe873f83c325afff321b27eb28e8417539ca71db49c72ef0f088a52f9cec6d8a05335c8aeeb571ec0a9026c079d8c06d4ba2b1e22631cf7bdcdc91c630d31d6256eb549cf63c4626443cb373173072c5db90cc1e825970b95184ccc74824e0f3ba019e48bffdb4c0723805eb91cb30dcaf11c9e32fa05752f569c6a7e16353e1594347d517417f42cb7cd836954fc4326a7f261cfc02e7c5e55973fd96"
-
-!unzip "/content/coco_netG_epoch_90.pth.zip?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=gcp-kaggle-com@kaggle-161607.iam.gserviceaccount.com%2F20240630%2Fauto%2Fstorage%2Fgoog4_request&X-Goog-Date=20240630T113827Z&X-Goog-Expires=259200&X-Goog-Si"
+!gdown --id 1xEr7gLFTfqcaqJ8rkkG0vEFkx-PvJOlc
 
 """# load Generators"""
 
@@ -28,22 +24,13 @@ class Struct:
 import torch
 
 # Define paths to your model weights
-stage1_weight_path = "/content/netG_epoch_100.pth"
-stage2_weight_path = "/content/coco_netG_epoch_90.pth"
+stage1_weight_path = "/content/netG_epoch_5.pth"
+stage2_weight_path = "/content/netG_epoch_5_G2.pth"
 
-params = dict()
-params['CONDITION_DIM']=128
-params['DF_DIM']=96
-params['GF_DIM']=192
-params['Z_DIM']=100
-params['R_NUM']=2
-params['DIMENSION']=1024
-params['CUDA']=None
-
-args = Struct(**params)
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # Create Stage 1 Generator
-STAGE1_G = STAGE1_G(args)  # Instantiate the model class
+STAGE1_G = STAGE1_G()  # Instantiate the model class
 
 # Load weights from stage1.pth
 STAGE1_G.load_state_dict(torch.load(stage1_weight_path, map_location=torch.device('cpu')))
@@ -54,7 +41,7 @@ STAGE1_G.eval()
 # Create Stage 2 Generator
 
 
-STAGE2_G = STAGE2_G(STAGE1_G, args)  # Pass Stage 1 model to Stage 2
+STAGE2_G = STAGE2_G(STAGE1_G)  # Pass Stage 1 model to Stage 2
 
 # Load weights from stage2.pth
 STAGE2_G.load_state_dict(torch.load(stage2_weight_path, map_location=torch.device('cpu')))
@@ -76,12 +63,12 @@ text = input("what do you want to generate?:  ")
 import matplotlib.pyplot as plt
 
 text_embeddings = model.encode(text)
-noise = torch.randn(1, args.Z_DIM)
+noise = torch.randn(1, 100)
 text_embeddings = torch.tensor(text_embeddings).unsqueeze(0)
 
-_, stage2_img, _, _ = STAGE1_G(text_embeddings, noise)
+with torch.no_grad():  # Disable gradient calculation for stage 1 generator
+    stage1_img, stage2_img, _, _ = STAGE2_G(text_embeddings, noise)
 
-import matplotlib.pyplot as plt
 
 # Detach the tensor and convert it to a NumPy array
 stage1_img_np = stage2_img.detach().numpy()
@@ -97,3 +84,4 @@ stage1_img_np = stage1_img_np.transpose(1, 2, 0)
 # Display the image
 plt.imshow(stage1_img_np)
 plt.show()
+
