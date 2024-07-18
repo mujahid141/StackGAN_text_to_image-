@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Generated Image</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #4c83ff, #a8c0ff);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            color: #333;
+        }
+
+        .container {
+            background: white;
+            padding: 2em;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        h1 {
+            margin-bottom: 1em;
+            font-size: 1.5em;
+            color: #4c83ff;
+        }
+
+        img {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            margin-bottom: 1em;
+        }
+
+        a {
+            display: inline-block;
+            padding: 0.5em 1em;
+            background: #4c83ff;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: background 0.3s;
+        }
+
+        a:hover {
+            background: #365fbb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Generated Image</h1>
+        <img src="data:image/png;base64,{{ image_base64 }}" alt="Generated Image">
+        <br>
+        <a href="{% url 'generate_image' %}">Generate another image</a>
+    </div>
+</body>
+</html>

@@ -1,0 +1,10 @@
+torch
+matplotlib
+io
+base
+numpy
+pandas
+sentence_tranformers
+gdown
+gdown 1-4liMOrMxY2HTy5FPmDr9MjWPjM-P6iy
+gdown 1xEr7gLFTfqcaqJ8rkkG0vEFkx-PvJOlc
